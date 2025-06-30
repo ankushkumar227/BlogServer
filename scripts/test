@@ -1,0 +1,9 @@
+#!/bin/bash
+yamlFile="../config/users.yaml"   
+for mod in $(yq -e -r '.mods[].username' $yamlFile); do #use -r to not include inverted commas in output
+                                                        # -e exits the code if there is an error in yq expression
+    echo "$mod"
+    for author in $(yq -e -r ".mods[] | select(.username == \"$mod\") | .authors[]" $yamlFile); do  
+        echo "$author"
+    done
+done

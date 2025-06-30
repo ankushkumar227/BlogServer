@@ -1,0 +1,31 @@
+users:
+  - username: u1
+  - username: u2
+  - username: u3
+  - username: u4
+  - username: u5
+  - username: u6
+  - username: u7
+  - username: u8
+  - username: u9
+  - username: u10
+authors:
+  - username: a1
+  - username: a2
+  - username: a3
+  - username: a4
+  - username: a5
+  
+mods:
+  - username: m1
+    authors:
+    - a1
+    - a3
+    - a4
+  - username: m2
+    authors:
+    - a2
+    - a5
+admins:
+  - username: ad1
+  - username: ad2
