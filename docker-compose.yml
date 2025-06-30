@@ -1,0 +1,14 @@
+services:
+
+  user-services:
+    build: ./user-service
+    container_name: user-service
+    volumes:
+      - ./scripts:/scripts
+      - ./config:/config
+      - ./data:/home
+
+    stdin_open: true     # -i
+    tty: true            # -t
+    command: bash        # or "sh" if bash not installed
+    
