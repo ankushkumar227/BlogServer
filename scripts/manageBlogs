@@ -1,0 +1,75 @@
+#!/bin/bash
+
+author=$(whoami)
+yamlFile="/home/authors/$author/blogs.yaml"
+publicDir="/home/authors/$author/public"
+blogsDir="/home/authors/$author/blogs"
+
+declare -A CATEGORIES=(
+  [1]="Sports" [2]="Cinema" [3]="Technology" [4]="Travel"
+  [5]="Food" [6]="Lifestyle" [7]="Finance"
+)
+
+if [ ! -f "$yamlFile" ];then
+    touch "$yamlFile"
+    cat <<EOF > "$yamlFile"
+categories:
+  1: "Sports"
+  2: "Cinema"
+  3: "Technology"
+  4: "Travel"
+  5: "Food"
+  6: "Lifestyle"
+  7: "Finance"
+EOF
+fi
+
+
+# Helper: ask for category order
+get_cat_order() {
+  
+  read input
+  input="${input//,/ }"          # Replace commas with spaces
+  read -a order <<< "$input"     # Store into array
+  echo -n "["
+  for i in "${!order[@]}"; do
+    echo -n "${order[$i]}"
+    [[ $i -lt $((${#order[@]} - 1)) ]] && echo -n ","
+  done
+  echo "]"
+}
+
+# PUBLISH BLOG
+if [[ "$1" == "-p" && -n "$2" ]]; then
+  file="$2"
+  if [ -f "$blogsDir/$file" ];then
+    # Ask for categories
+    echo "Publishing $file"
+    echo "Enter category numbers in order (e.g. 2 1 3):"
+    catOrder=$(get_cat_order)
+    cp "$blogsDir/$file" "$publicDir/$file"
+    yq e -i ".blogs += [{\"file_name\": \"$file\", \"publish_status\": true, \"cat_order\": $catOrder}]" "$yamlFile"
+  fi
+fi
+
+# ARCHIVE BLOG
+if [[ "$1" == '-a' && -n "$2" ]]; then
+    file="$2"
+    if [ -f "$publicDir/$file" ]; then
+        echo "archiving $file"
+        rm "$publicDir/$file"
+        yq -e -i "(.blogs[] | select(.file_name == \"$file\")).publish_status = false" $yamlFile
+    fi
+fi
+
+# DELETE BLOG
+if [[ "$1" == '-d' && -n "$2" ]]; then
+    file="$2"
+    if [ -f "$publicDir/$file" ]; then
+        rm "$publicDir/$file"
+    fi
+    if [ -f "$blogsDir/$file" ]; then
+        rm "$blogsDir/$file"
+    fi
+    yq -e -i "del(.blogs[] | select(.file_name == \"$file\"))" "$yamlFile"
+fi
