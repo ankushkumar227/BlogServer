@@ -9,6 +9,7 @@ RUN apt update && apt install -y \
     bash \
     coreutils \
     acl \
+    mysql-client \
     && rm -rf /var/lib/apt/lists/* 
 # ladt line removes unnessary metadata from mage to reduce its size
 

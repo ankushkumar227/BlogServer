@@ -3,6 +3,13 @@ services:
   user-services:
     build: ./user-service
     container_name: user-service
+    environment:
+      DB_HOST: mysql-service
+      DB_USER: Admin1
+      DB_PASSWORD: Admin@123
+      DB_NAME: mydb
+    depends_on:
+      - mysql-services
     volumes:
       - ./scripts:/scripts
       - ./config:/config
@@ -11,4 +18,23 @@ services:
     stdin_open: true     # -i
     tty: true            # -t
     command: bash        # or "sh" if bash not installed
-    
+
+  nginx-services:
+    build: ./nginx-service
+    container_name: nginx-service
+    volumes:
+      - ./data/authors:/usr/share/nginx/html
+    ports:
+      - 5001:80
+
+  mysql-services:
+    build: ./mysql-service
+    container_name: mysql-service
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass123
+      MYSQL_DATABASE: mydb
+    volumes:
+      - ./data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
