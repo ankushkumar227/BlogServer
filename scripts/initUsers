@@ -1,74 +1,96 @@
 #!/bin/bash
 
-# CREATE GROUP AND DIRECTORIES
-groupadd -f g_admin  # -f will avoid raising an error if group already exist
+now=$(date +"%Y-%m-%d %H:%M:%S")
+USER_TABLE="users"
+
+# CREATE GROUPS AND BASE DIRECTORIES
+groupadd -f g_admin
 groupadd -f g_user
 groupadd -f g_author
 groupadd -f g_mod
 
+mkdir -p /home/authors /home/users /home/mods /home/admins
+
 yamlFile="/config/users.yaml"
 
-# CREATE USERS, HOME DIR, ASSIGN GROUPS, SUB DIR
+# CREATE USERS
+for u in $(yq -e -r '.users[].username' "$yamlFile"); do 
+    if ! id "$u" &> /dev/null; then
+        useradd -m -d "/home/users/$u" "$u"
+        usermod -g g_user "$u"
+        mkdir -p "/home/users/$u/allBlogs"
+        setfacl -R -m u:$u:rwx /home/users/$u
+        setfacl -R -d -m u:$u:rwx /home/users/$u
 
-for u in $(yq -e -r '.users[].username' $yamlFile);do 
-    if ! id "$u" &> /dev/null;then
-        mkdir -p "/home/users"
-        useradd -m -d "/home/users/$u" "$u"  #-m creates home -d sets it explictly to specified value
-        usermod -g g_user "$u" #-g specifies the new primary group -G for secondary group
-        mkdir -p "/home/users/$u/allBlogs" #-p includes necessary parent directories
-        setfacl -R -m u:$u:rwx /home/users/$u;  # permission for all exixting files
-        setfacl -R -d -m u:$u:rwx /home/users/$u;  # permission for all new files
+        mysql -h mysql-service -uroot -prootpass123  -e "use mydb;
+            INSERT INTO $USER_TABLE (id, role, created_on)
+            VALUES ('$u', 'user', '$now')
+            ON DUPLICATE KEY UPDATE role='user', created_on='$now';
+        "
     fi
 done
 
-for u in $(yq -e -r '.authors[].username' $yamlFile);do 
-    if ! id "$u" &> /dev/null;then
-        mkdir -p "/home/authors"
+# CREATE AUTHORS
+for u in $(yq -e -r '.authors[].username' "$yamlFile"); do 
+    if ! id "$u" &> /dev/null; then
         useradd -m -d "/home/authors/$u" "$u"
         usermod -g g_author "$u"
-        mkdir -p "/home/authors/$u/blogs"
-        mkdir -p "/home/authors/$u/public"
-        setfacl -R -m u:$u:rwx /home/authors/$u # users and authors have permissions to their home dir. -m to modify
-        setfacl -R -d -m u:$u:rwx /home/authors/$u; #-d for new files -R for all existing files and folders inside
+        mkdir -p "/home/authors/$u/blogs" "/home/authors/$u/public"
+        setfacl -R -m u:$u:rwx /home/authors/$u
+        setfacl -R -d -m u:$u:rwx /home/authors/$u
+
+        mysql -h mysql-service -uroot -prootpass123 -e "Use mydb;
+            INSERT INTO $USER_TABLE (id, role, created_on)
+            VALUES ('$u', 'author', '$now')
+            ON DUPLICATE KEY UPDATE role='author', created_on='$now';
+        "
     fi
 done
 
-for u in $(yq -e -r '.mods[].username' $yamlFile);do 
-    if ! id "$u" &> /dev/null;then
-        mkdir -p /home/mods
+# CREATE MODS
+for u in $(yq -e -r '.mods[].username' "$yamlFile"); do 
+    if ! id "$u" &> /dev/null; then
         useradd -m -d "/home/mods/$u" "$u"
         usermod -g g_mod "$u"
-        setfacl -R -m u:$u:rwx /home/mods/$u; 
-        setfacl -R -d -m u:$u:rwx /home/mods/$u;
+        setfacl -R -m u:$u:rwx /home/mods/$u
+        setfacl -R -d -m u:$u:rwx /home/mods/$u
 
+        mysql -h mysql-service -uroot -prootpass123 -e "use mydb;
+            INSERT INTO $USER_TABLE (id, role, created_on)
+            VALUES ('$u', 'mod', '$now')
+            ON DUPLICATE KEY UPDATE role='mod', created_on='$now';
+        "
     fi
 done
 
-for u in $(yq -e -r '.admins[].username' $yamlFile);do 
-    if ! id "$u" &> /dev/null;then
-        mkdir -p /home/admins
+# CREATE ADMINS
+for u in $(yq -e -r '.admins[].username' "$yamlFile"); do 
+    if ! id "$u" &> /dev/null; then
         useradd -m -d "/home/admins/$u" "$u"
         usermod -g g_admin "$u"
-        setfacl -R -m u:$u:rwx /home; 
-        setfacl -R -d -m u:$u:rwx /home; 
+        setfacl -R -m u:$u:rwx /home/admins/$u
+        setfacl -R -d -m u:$u:rwx /home/admins/$u
+
+        mysql -h mysql-service -uroot -prootpass123 -e "use mydb;
+            INSERT INTO $USER_TABLE (id, role, created_on)
+            VALUES ('$u', 'admin', '$now')
+            ON DUPLICATE KEY UPDATE role='admin', created_on='$now';
+        "
     fi
 done
 
-# ASSIGN AUTHORS TO RESPECTIVE MODS 
-
-for mod in $(yq -e -r '.mods[].username' $yamlFile);do # -e exits code if there is some error in yq. -r returns raw output not containing inverted commas
-    for author in $(yq -e -r ".mods[] | select(.username == \"$mod\") | .authors[]" $yamlFile); do
-        setfacl -d -m u:$mod:rw "/home/authors/$author/public" # -d to add same acl to all new files and foldes inside
+# ASSIGN AUTHORS TO RESPECTIVE MODS
+for mod in $(yq -e -r '.mods[].username' "$yamlFile"); do
+    for author in $(yq -e -r ".mods[] | select(.username == \"$mod\") | .authors[]" "$yamlFile"); do
+        setfacl -R -m u:$mod:rw "/home/authors/$author/public"
+        setfacl -R -d -m u:$mod:rw "/home/authors/$author/public"
     done
 done
 
-# LISTING PUBLIC DIR OF AUTHORS TO ALL USERS
-
-for user in $(yq -e -r '.users[].username' $yamlFile);do 
-    for author in $(yq -e -r '.authors[].username' "$yamlFile");do
-        setfacl -m u:"$user":r "/home/authors/"$author"/public"
-        ln -s "/home/authors/"$author"/public" "/home/users/"$user"/allBlogs/"$author""  # mainfile first
+# LINK PUBLIC BLOGS TO ALL USERS
+for user in $(yq -e -r '.users[].username' "$yamlFile"); do 
+    for author in $(yq -e -r '.authors[].username' "$yamlFile"); do
+        setfacl -m u:$user:r "/home/authors/$author/public"
+        ln -snf "/home/authors/$author/public" "/home/users/$user/allBlogs/$author"
     done
 done
-
-
