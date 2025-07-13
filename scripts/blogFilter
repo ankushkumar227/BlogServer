@@ -1,0 +1,59 @@
+#!/bin/bash
+
+mapfile -t words < ./blacklist.txt #read blacklisted words in array
+
+mod=$(whoami)
+authors=$(yq -e -r ".mods[] | select(.username == \"$mod\") | .authors[] " /config/users.yaml)
+
+for author in $authors;do
+    echo $author
+    for publicFile in /home/authors/"$author"/public/*; do  
+
+        [ -e "$publicFile" ] || continue   # ensures only files are processed, continues if not file
+        count=0
+        for word in "${words[@]}"; do
+            x=$(grep -ni "$word" "$publicFile" | awk -F: '{print $1}')
+            if [ -n "$x" ]; then
+                echo "Found word '$word' in $publicFile at line(s): $x"
+                length=${#word}  
+                stars=$(printf '%*s\n' "$length" '' | tr ' ' '*')
+                sed -i "s/${word}/${stars}/gI" $publicFile     # -i to replace the file n place / gI gor case insensetive
+            fi
+
+        done
+    done
+    
+done
+
+#     for publicFile in /home/authors/"$author"/public/*; do
+#     echo "$publicFile"
+#         if [ -f "$publicFile" ]; then
+#             echo "$publicFile"
+#             count=0
+#             for word in "${words[@]}"; do
+#                 echo $word
+#                 if [[ -z "$word" ]]; then continue; fi # this will skip if space comes from blacklist.txt
+
+#                 x=$(grep -ni "$word" $publicFile | awk -F: '{print $1}') # find line numbers    -i for case insensetive        
+#                 echo "Found word $word at line number $x"
+
+#                 # replace with astericks
+#                 length=${#word}            
+#                 stars=$(printf '%*s\n' "$length" '' | tr ' ' '*')
+#                 sed -i "s/${word}/${stars}/gI" $publicFile     # -i to replace the file n place / gI gor case insensetive
+
+#                 #count number of matches
+#                 y=$(grep -oi "$word" $publicFile | wc -l)
+#                 ((count += y))
+#             done
+
+#             # Archiv eif threshhold exceeds
+
+#             if [ $count -ge 5 ]; then
+#                 /scripts/manageBlogs -a $publicFile
+#                 yq -i "(.blogs[] | select(.file_name == \"$publicFile\").mod_comments) = "found '"$count"" blacklist words"' "/home/authors/$author/blogs.yaml" 
+#                 echo "Blog File $publicFile is Archived"
+#             fi
+#         fi     
+#     done
+# done

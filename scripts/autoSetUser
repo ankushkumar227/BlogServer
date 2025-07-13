@@ -1,0 +1,5 @@
+#!/bin/bash
+
+for i in a1 a2 a3 a4 a5;do
+    su - "$i" -c "/scripts/createBlogs; exit" #no need of exit as it exits automatically
+done

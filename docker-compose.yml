@@ -1,6 +1,6 @@
 services:
 
-  user-services:
+  user-service:
     build: ./user-service
     container_name: user-service
     environment:
@@ -19,7 +19,7 @@ services:
     tty: true            # -t
     command: bash        # or "sh" if bash not installed
 
-  nginx-services:
+  nginx-service:
     build: ./nginx-service
     container_name: nginx-service
     volumes:
@@ -28,13 +28,14 @@ services:
       - 5001:80
 
   mysql-services:
-    build: ./mysql-service
+    image: mysql:8.0
     container_name: mysql-service
     environment:
       MYSQL_ROOT_PASSWORD: rootpass123
       MYSQL_DATABASE: mydb
     volumes:
-      - ./data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./mysql-service/data:/var/lib/mysql
+      - ./mysql-service/init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "3307:3306"
+

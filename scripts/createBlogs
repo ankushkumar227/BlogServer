@@ -1,0 +1,14 @@
+#!/bin/bash
+
+username=$(whoami)
+blogdir="/home/authors/$username/blogs"
+
+# Create & publish Blog1 and Blog2
+for i in 1 2 3; do
+  file="${username}Blog${i}.txt"
+  touch "$blogdir/$file"                        # create the draft
+  echo "this is $username's blog $i" >> "$blogdir/$file" 
+  nums=($(shuf -i 1-7 -n 3))
+  input="${nums[0]},${nums[1]},${nums[2]}"
+  /scripts/manageBlogs -p "$file" <<< "$input"
+done

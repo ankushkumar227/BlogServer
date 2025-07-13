@@ -1,6 +1,3 @@
-FROM nginx
-
+FROM nginx:stable
 COPY nginx.conf /etc/nginx/nginx.conf
-
-RUN apt install dnsmasq
-
+RUN apt update && apt install -y dnsmasq

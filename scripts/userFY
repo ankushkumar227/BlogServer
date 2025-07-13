@@ -1,0 +1,91 @@
+#!/bin/bash
+
+set -e
+
+CATEGORY_MAP=(
+  [1]="Sports" [2]="Cinema" [3]="Technology" [4]="Travel"
+  [5]="Food" [6]="Lifestyle" [7]="Finance"
+)
+
+USER_PREFS="/scripts/userPref.yaml"
+BLOG_DIR="/home/authors"
+USER_DIR="/home/users"
+
+declare -A BLOG_META       # blog_id -> "filepath|category"
+declare -A BLOG_USERS      # blog_id -> comma-separated list of usernames
+declare -A USER_ASSIGNED   # username -> comma-separated list of blog_ids
+
+# 1. Load public blogs into BLOG_META
+for blogs_yaml in "$BLOG_DIR"/*/blogs.yaml; do
+  x=$(dirname "$blogs_yaml")
+  author_pub_dir=$x/public
+  total=$(yq '.blogs | length' "$blogs_yaml")
+
+  for ((i = 0; i < total; i++)); do
+    pub=$(yq ".blogs[$i].publish_status" "$blogs_yaml")
+    [[ "$pub" != "true" ]] && continue
+
+    file_name=$(yq ".blogs[$i].file_name" "$blogs_yaml")
+    blog_path="$author_pub_dir/$file_name"
+    blog_id=$(realpath --relative-to=/ "$blog_path")
+
+    for cat_code in $(yq ".blogs[$i].cat_order[]" "$blogs_yaml"); do
+      category=${CATEGORY_MAP[$cat_code]}
+      BLOG_META["$blog_id"]="$blog_path|$category"
+    done
+  done
+done
+
+# 2. Assign blogs to users
+user_count=$(yq '.users | length' "$USER_PREFS")
+for ((u = 0; u < user_count; u++)); do
+  uname=$(yq ".users[$u].username" "$USER_PREFS")
+  upref1=$(yq ".users[$u].pref1" "$USER_PREFS")
+  upref2=$(yq ".users[$u].pref2" "$USER_PREFS")
+  upref3=$(yq ".users[$u].pref3" "$USER_PREFS")
+  assigned=false
+
+  # Helper: assign blog to user
+  assign_blog() {
+    blog_id=$1
+    [[ "${USER_ASSIGNED[$uname]}" == *"$blog_id"* ]] && return 1
+    BLOG_USERS["$blog_id"]+="$uname,"
+    USER_ASSIGNED["$uname"]+="$blog_id,"
+    mkdir -p "/home/users/$uname/ForYou"
+    ln -sf "/$blog_id" "$USER_DIR/$uname/ForYou/$(basename "$blog_id")"
+    yq -i ".assigned += [\"$(basename "$blog_id")\"]" "$USER_DIR/$uname/ForYou/FYI.yaml" 2>/dev/null || \
+      echo "assigned: [\"$(basename "$blog_id")\"]" > "$USER_DIR/$uname/FYI.yaml"
+    assigned=true
+  }
+
+  # Try preferences in order
+  for pref in "$upref1" "$upref2" "$upref3"; do
+    min=10000
+    candidates=()
+    for id in "${!BLOG_META[@]}"; do
+      IFS='|' read -r path cat <<< "${BLOG_META[$id]}"
+      [[ "$cat" != "$pref" ]] && continue
+      count=$(echo "${BLOG_USERS[$id]}" | tr -cd ',' | wc -c)
+      (( count < min )) && { min=$count; candidates=("$id"); } || \
+      (( count == min )) && candidates+=("$id")
+    done
+
+    for cid in "${candidates[@]}"; do
+      assign_blog "$cid" && break 2
+    done
+  done
+
+  # Fallback: random unassigned blog
+  if ! $assigned; then
+    for id in "${!BLOG_META[@]}"; do
+      [[ "${USER_ASSIGNED[$uname]}" == *"$id"* ]] && continue
+      assign_blog "$id" && break
+    done
+  fi
+done
+
+# Optional: print blog → users mapping
+echo "Blog → Assigned Users:"
+for id in "${!BLOG_USERS[@]}"; do
+  echo "$(basename "$id") → ${BLOG_USERS[$id]%,}"
+done

@@ -82,8 +82,8 @@ done
 # ASSIGN AUTHORS TO RESPECTIVE MODS
 for mod in $(yq -e -r '.mods[].username' "$yamlFile"); do
     for author in $(yq -e -r ".mods[] | select(.username == \"$mod\") | .authors[]" "$yamlFile"); do
-        setfacl -R -m u:$mod:rw "/home/authors/$author/public"
-        setfacl -R -d -m u:$mod:rw "/home/authors/$author/public"
+        setfacl -R -m u:$mod:rwx "/home/authors/$author/public"
+        setfacl -R -d -m u:$mod:rwx "/home/authors/$author/public"
     done
 done
 
