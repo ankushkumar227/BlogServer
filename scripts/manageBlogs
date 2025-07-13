@@ -49,6 +49,10 @@ if [[ "$1" == "-p" && -n "$2" ]]; then
     catOrder=$(get_cat_order)
     cp "$blogsDir/$file" "$publicDir/$file"
     yq e -i ".blogs += [{\"file_name\": \"$file\", \"publish_status\": true, \"cat_order\": $catOrder}]" "$yamlFile"
+    mysql -h mysql-service -uroot -prootpass123 -e "use mydb;
+        INSERT INTO blogs (id, blog_name, status)
+        VALUES ('$author', '$file', 'published');
+    "
   fi
 fi
 
@@ -59,6 +63,10 @@ if [[ "$1" == '-a' && -n "$2" ]]; then
         echo "archiving $file"
         rm "$publicDir/$file"
         yq -e -i "(.blogs[] | select(.file_name == \"$file\")).publish_status = false" $yamlFile
+        mysql -h mysql-service -uroot -prootpass123 -e "use mydb;
+            INSERT INTO blogs (id, blog_name, status)
+            VALUES ('$author', '$file', 'archived');
+        "
     fi
 fi
 
@@ -72,4 +80,8 @@ if [[ "$1" == '-d' && -n "$2" ]]; then
         rm "$blogsDir/$file"
     fi
     yq -e -i "del(.blogs[] | select(.file_name == \"$file\"))" "$yamlFile"
+    mysql -h mysql-service -uroot -prootpass123 -e "use mydb;
+        INSERT INTO blogs (id, blog_name, status)
+        VALUES ('$author', '$file', 'deleted');
+    "
 fi
