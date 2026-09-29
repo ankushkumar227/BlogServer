@@ -1,55 +1,533 @@
-<div align="center">
-
 # DeltaTask2
 
-### A Dockerized multi-service blogging platform built with Docker, MySQL & Nginx.
+A Docker-based multi-service application consisting of a user service, MySQL database, and Nginx web server.
 
-![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
-![Nginx](https://img.shields.io/badge/Nginx-Server-009639?style=for-the-badge&logo=nginx&logoColor=white)
-![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)
-
-</div>
-
----
-
-## About
-
-**DeltaTask2** is a containerized blogging platform designed around a multi-service architecture.
-
-It combines a **user service**, **MySQL database**, and **Nginx web server** to manage users and serve individual blogs through username-based subdomains.
-
----
-
-## Features
-
-- User and role management
-- Multiple user roles: `user`, `author`, `mod`, `admin`
-- MySQL-backed data storage
-- Individual blogs for users
-- Username-based blog subdomains
-- Nginx-powered static content serving
-- Fully containerized with Docker Compose
-
----
+The project is structured as a small service-oriented application where the individual components run in separate Docker containers and communicate through a Docker Compose network.
 
 ## Architecture
 
+The application consists of three main services:
+
+* **User Service** – Handles user/service-side operations and communicates with MySQL.
+* **MySQL Service** – Provides persistent database storage.
+* **Nginx Service** – Serves blog/static content using username-based subdomains.
+
 ```text
-                    ┌──────────────┐
-                    │    Client    │
-                    └──────┬───────┘
-                           │
-                    username.blog.in
-                           │
-                           ▼
-                    ┌──────────────┐
-                    │    Nginx     │
-                    │ Blog Server  │
-                    └──────┬───────┘
-                           │
-              ┌────────────┴────────────┐
-              ▼                         ▼
-       ┌─────────────┐           ┌─────────────┐
-       │ User Service│ ─────────▶│    MySQL    │
-       └─────────────┘           └─────────────┘
+                         ┌──────────────────────┐
+                         │      Client          │
+                         └──────────┬───────────┘
+                                    │
+                              Port 5001
+                                    │
+                                    ▼
+                         ┌──────────────────────┐
+                         │    Nginx Service     │
+                         │                      │
+                         │ username.blog.in     │
+                         └──────────────────────┘
+
+
+                         ┌──────────────────────┐
+                         │    User Service      │
+                         │                      │
+                         │  Ubuntu 20.04        │
+                         │  MySQL Client        │
+                         │  yq                  │
+                         └──────────┬───────────┘
+                                    │
+                                    │ MySQL
+                                    ▼
+                         ┌──────────────────────┐
+                         │    MySQL Service     │
+                         │                      │
+                         │     MySQL 8.0        │
+                         │       mydb            │
+                         └──────────────────────┘
+```
+
+## Project Structure
+
+```text
+DeltaTask2/
+│
+├── config/
+│   └── Configuration files
+│
+├── mysql-service/
+│   ├── data/
+│   └── init.sql
+│
+├── nginx-service/
+│   ├── Dockerfile
+│   └── nginx.conf
+│
+├── scripts/
+│   └── Utility/setup scripts
+│
+├── user-service/
+│   └── Dockerfile
+│
+├── docker-compose.yml
+└── README.md
+```
+
+## Technologies Used
+
+* Docker
+* Docker Compose
+* MySQL 8.0
+* Nginx
+* Ubuntu 20.04
+* Bash
+* MySQL Client
+* `yq`
+
+The user-service Docker image is based on Ubuntu 20.04 and installs Bash, curl, coreutils, ACL utilities, the MySQL client, and `yq`.
+
+## Prerequisites
+
+Before running the project, make sure the following are installed:
+
+* Docker
+* Docker Compose
+
+You can verify the installation with:
+
+```bash
+docker --version
+docker compose version
+```
+
+## Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ankushkumar227/DeltaTask2.git
+cd DeltaTask2
+```
+
+Build and start the services:
+
+```bash
+docker compose up --build
+```
+
+To run the services in detached mode:
+
+```bash
+docker compose up --build -d
+```
+
+Check the running containers:
+
+```bash
+docker compose ps
+```
+
+View logs:
+
+```bash
+docker compose logs
+```
+
+View logs for an individual service:
+
+```bash
+docker compose logs user-service
+docker compose logs mysql-services
+docker compose logs nginx-service
+```
+
+## Services
+
+### 1. User Service
+
+The `user-service` container is built from:
+
+```text
+./user-service
+```
+
+Its Docker image is based on Ubuntu 20.04 and includes the MySQL client and `yq`.
+
+The service receives the following database environment variables:
+
+```text
+DB_HOST=mysql-service
+DB_USER=Admin1
+DB_PASSWORD=Admin@123
+DB_NAME=mydb
+```
+
+The service also mounts several directories:
+
+```text
+./scripts  → /scripts
+./config   → /config
+./data     → /home
+```
+
+The current Compose configuration starts the container with an interactive Bash shell:
+
+```yaml
+command: bash
+```
+
+Therefore, any service-specific commands or scripts should be run according to the contents of the `scripts` and `config` directories.
+
+### 2. MySQL Service
+
+The database service uses:
+
+```text
+mysql:8.0
+```
+
+The database is configured with:
+
+```text
+Database: mydb
+Root password: rootpass123
+```
+
+MySQL is exposed on the host at:
+
+```text
+localhost:3307
+```
+
+The container's MySQL port remains:
+
+```text
+3306
+```
+
+Persistent database data is stored through:
+
+```text
+./mysql-service/data:/var/lib/mysql
+```
+
+The initialization script is mounted at:
+
+```text
+./mysql-service/init.sql:/docker-entrypoint-initdb.d/init.sql
+```
+
+This allows MySQL to initialize the required users, permissions, and tables when the database is created.
+
+### 3. Nginx Service
+
+The Nginx service is built from:
+
+```text
+./nginx-service
+```
+
+It exposes port `80` inside the container as port `5001` on the host:
+
+```text
+5001:80
+```
+
+Static/blog content is mounted into:
+
+```text
+/usr/share/nginx/html
+```
+
+The Nginx configuration supports username-based subdomains following this pattern:
+
+```text
+<username>.blog.in
+```
+
+For a request matching that pattern, Nginx serves files from:
+
+```text
+/usr/share/nginx/html/<username>/public
+```
+
+Directory listing is enabled with human-readable file sizes and local timestamps.
+
+## Database Schema
+
+The initialization script creates a database named `mydb`.
+
+### Users
+
+The `users` table contains:
+
+| Column       | Type           | Description        |
+| ------------ | -------------- | ------------------ |
+| `id`         | `VARCHAR(100)` | Primary identifier |
+| `role`       | `ENUM`         | User role          |
+| `created_on` | `DATETIME`     | Creation timestamp |
+
+Supported roles are:
+
+```text
+user
+author
+mod
+admin
+```
+
+### Blogs
+
+The `blogs` table contains:
+
+| Column      | Type           | Description     |
+| ----------- | -------------- | --------------- |
+| `id`        | `VARCHAR(100)` | Blog identifier |
+| `blog_name` | `VARCHAR(255)` | Blog name       |
+| `status`    | `VARCHAR(20)`  | Blog status     |
+
+These tables are created automatically by `mysql-service/init.sql`.
+
+## Database Credentials
+
+The current development configuration contains the following credentials:
+
+```text
+MySQL root user:
+  Password: rootpass123
+
+Application database user:
+  Username: Admin1
+  Password: Admin@123
+
+Database:
+  mydb
+```
+
+**Important:** These credentials are currently stored directly in `docker-compose.yml` and `init.sql`. Do not use these credentials in a production environment.
+
+For production deployments, move credentials to environment variables or Docker secrets and rotate any credentials that have been exposed publicly.
+
+## Accessing MySQL
+
+After the containers are running, MySQL can be accessed from the host using:
+
+```bash
+mysql -h 127.0.0.1 -P 3307 -u Admin1 -p
+```
+
+Then select the database:
+
+```sql
+USE mydb;
+```
+
+You can inspect the available tables with:
+
+```sql
+SHOW TABLES;
+```
+
+## Accessing the Nginx Server
+
+The Nginx container is exposed on port `5001`.
+
+Open:
+
+```text
+http://localhost:5001
+```
+
+The Nginx configuration is designed for hostnames matching:
+
+```text
+<username>.blog.in
+```
+
+For example:
+
+```text
+alice.blog.in
+bob.blog.in
+```
+
+The corresponding files are served from:
+
+```text
+/usr/share/nginx/html/alice/public
+/usr/share/nginx/html/bob/public
+```
+
+When testing locally, you may need to configure your hosts file or local DNS so that the desired `.blog.in` hostname resolves to your machine.
+
+## Useful Docker Commands
+
+Start the application:
+
+```bash
+docker compose up
+```
+
+Start in the background:
+
+```bash
+docker compose up -d
+```
+
+Rebuild the images:
+
+```bash
+docker compose build
+```
+
+Rebuild and start:
+
+```bash
+docker compose up --build
+```
+
+Stop the application:
+
+```bash
+docker compose down
+```
+
+Stop containers and remove associated volumes:
+
+```bash
+docker compose down -v
+```
+
+Check containers:
+
+```bash
+docker compose ps
+```
+
+Check logs:
+
+```bash
+docker compose logs -f
+```
+
+Open a shell inside the user service:
+
+```bash
+docker exec -it user-service bash
+```
+
+Open a MySQL shell:
+
+```bash
+docker exec -it mysql-service mysql -uroot -p
+```
+
+## Data Persistence
+
+The project uses Docker volume mounts for persistent data.
+
+MySQL data:
+
+```text
+./mysql-service/data
+```
+
+Blog/static content:
+
+```text
+./data/authors
+```
+
+The Compose configuration also mounts the project's `scripts`, `config`, and `data` directories into the user service.
+
+## Troubleshooting
+
+### MySQL container does not initialize
+
+If the database was already initialized previously, changes to `init.sql` may not automatically be applied because the existing MySQL data directory is preserved.
+
+For a clean development reset:
+
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+**Warning:** Removing volumes can delete locally persisted database data.
+
+### Check service status
+
+```bash
+docker compose ps
+```
+
+### Check MySQL logs
+
+```bash
+docker compose logs mysql-services
+```
+
+### Check Nginx logs
+
+```bash
+docker compose logs nginx-service
+```
+
+### Check user-service logs
+
+```bash
+docker compose logs user-service
+```
+
+## Security Notes
+
+This repository currently contains development database credentials in the Docker Compose configuration and SQL initialization script.
+
+Before deploying this project publicly:
+
+1. Move credentials to environment variables or Docker secrets.
+2. Change all default passwords.
+3. Avoid committing secrets to Git.
+4. Restrict MySQL access to trusted hosts.
+5. Review Nginx directory-listing requirements.
+6. Add authentication and authorization where required.
+7. Add production-ready health checks and restart policies.
+8. Consider using a dedicated non-root application user inside containers.
+
+## Development
+
+The application is organized into separate services so that database, user-related operations, and web/static content can be developed independently.
+
+A typical development workflow is:
+
+```bash
+git clone https://github.com/ankushkumar227/DeltaTask2.git
+cd DeltaTask2
+
+docker compose up --build
+```
+
+Make changes to the relevant service, rebuild the affected image, and restart the Compose stack.
+
+## Future Improvements
+
+Potential improvements include:
+
+* Add a proper application entrypoint for `user-service`.
+* Add Docker health checks for MySQL and dependent services.
+* Move secrets to `.env` files or Docker secrets.
+* Add explicit restart policies.
+* Add automated tests.
+* Add API documentation if the user service exposes HTTP endpoints.
+* Add CI/CD using GitHub Actions.
+* Add production-specific Docker Compose configuration.
+* Add monitoring and structured logging.
+* Add a documented local DNS/hosts-file setup for `.blog.in` domains.
+
+## License
+
+No license file is currently documented in the repository. Add a `LICENSE` file if this project is intended to be distributed as open-source software.
+
+## Repository
+
+GitHub repository:
+
+https://github.com/ankushkumar227/DeltaTask2
