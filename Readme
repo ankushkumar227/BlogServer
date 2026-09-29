@@ -1,0 +1,110 @@
+# DeltaTask2
+
+A Docker-based multi-service application using **Nginx, MySQL, and a User Service**.
+
+## Tech Stack
+
+* Docker & Docker Compose
+* MySQL 8.0
+* Nginx
+* Ubuntu 20.04
+* Bash
+
+## Project Structure
+
+```text
+DeltaTask2/
+├── config/
+├── mysql-service/
+│   ├── data/
+│   └── init.sql
+├── nginx-service/
+│   ├── Dockerfile
+│   └── nginx.conf
+├── scripts/
+├── user-service/
+│   └── Dockerfile
+└── docker-compose.yml
+```
+
+## Services
+
+### User Service
+
+Ubuntu-based container with MySQL client and `yq`. It connects to the MySQL database and uses the project's `scripts`, `config`, and `data` directories.
+
+### MySQL
+
+Uses **MySQL 8.0** with database `mydb`. Database initialization is handled by `mysql-service/init.sql`.
+
+### Nginx
+
+Serves blog/static content on port **5001**. User blogs are mapped using:
+
+```text
+<username>.blog.in
+```
+
+## Setup
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ankushkumar227/DeltaTask2.git
+cd DeltaTask2
+```
+
+Build and start:
+
+```bash
+docker compose up --build
+```
+
+Run in background:
+
+```bash
+docker compose up --build -d
+```
+
+Check services:
+
+```bash
+docker compose ps
+```
+
+Stop services:
+
+```bash
+docker compose down
+```
+
+## Ports
+
+| Service |   Port |
+| ------- | -----: |
+| Nginx   | `5001` |
+| MySQL   | `3307` |
+
+## Database
+
+The database contains:
+
+* `users` – stores users and roles
+* `blogs` – stores blog information
+
+Supported user roles:
+
+```text
+user
+author
+mod
+admin
+```
+
+## Notes
+
+The current configuration contains development database credentials. These should be moved to environment variables or Docker secrets before production deployment.
+
+## Repository
+
+[GitHub](https://github.com/ankushkumar227/DeltaTask2)
