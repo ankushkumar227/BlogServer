@@ -1,129 +1,55 @@
+<div align="center">
+
 # DeltaTask2
 
-> A containerized multi-service blogging platform built with **Docker, MySQL, and Nginx**.
+### A Dockerized multi-service blogging platform built with Docker, MySQL & Nginx.
 
-DeltaTask2 provides the foundation for a multi-user blog system where users can have role-based access and blogs can be served through username-based subdomains.
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Nginx](https://img.shields.io/badge/Nginx-Server-009639?style=for-the-badge&logo=nginx&logoColor=white)
+![GitHub](https://img.shields.io/badge/GitHub-Repository-181717?style=for-the-badge&logo=github&logoColor=white)
 
-## What does it do?
-
-The project combines three services:
-
-* **User Service** — manages users and interacts with the database.
-* **MySQL** — stores users, roles, and blog information.
-* **Nginx** — serves each user's blog as a separate website.
-
-```text
-                    ┌─────────────────┐
-                    │      Client     │
-                    └────────┬────────┘
-                             │
-                      username.blog.in
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │      Nginx      │
-                    │  Blog Hosting   │
-                    └─────────────────┘
-                             │
-                             │
-             ┌───────────────┴───────────────┐
-             ▼                               ▼
-      ┌─────────────┐                 ┌─────────────┐
-      │ User Service│ ──────────────▶ │    MySQL    │
-      └─────────────┘                 └─────────────┘
-```
-
-## Key Features
-
-* Dockerized multi-service architecture
-* MySQL-backed user and blog management
-* Role-based users: `user`, `author`, `mod`, `admin`
-* Username-based blog subdomains
-* Nginx-powered static blog hosting
-* Persistent database and blog storage
-* Easy setup with Docker Compose
-
-## Tech Stack
-
-| Technology       | Purpose                  |
-| ---------------- | ------------------------ |
-| Docker & Compose | Containerization         |
-| MySQL 8          | Database                 |
-| Nginx            | Blog/web server          |
-| Ubuntu 20.04     | User-service environment |
-| Bash             | Service automation       |
-
-## Getting Started
-
-Clone the repository:
-
-```bash
-git clone https://github.com/ankushkumar227/DeltaTask2.git
-cd DeltaTask2
-```
-
-Start the complete application:
-
-```bash
-docker compose up --build
-```
-
-The Nginx server will be available on:
-
-```text
-http://localhost:5001
-```
-
-## Blog Structure
-
-Each user's blog is served using a dedicated hostname:
-
-```text
-<username>.blog.in
-```
-
-Nginx maps the hostname to that user's public blog directory:
-
-```text
-/usr/share/nginx/html/<username>/public
-```
-
-This allows multiple user blogs to be hosted from the same Nginx service.
-
-## Database
-
-The application uses a MySQL database named `mydb` with tables for:
-
-* Users and their roles
-* Blog information
-
-Database initialization is handled automatically through `mysql-service/init.sql`.
-
-## Project Structure
-
-```text
-DeltaTask2/
-├── config/
-├── mysql-service/
-│   ├── data/
-│   └── init.sql
-├── nginx-service/
-│   ├── Dockerfile
-│   └── nginx.conf
-├── scripts/
-├── user-service/
-│   └── Dockerfile
-└── docker-compose.yml
-```
-
-## Stop the Application
-
-```bash
-docker compose down
-```
+</div>
 
 ---
 
-### Built with Docker · MySQL · Nginx
+## About
 
-**DeltaTask2** — a simple foundation for hosting and managing multiple user blogs through a containerized architecture.
+**DeltaTask2** is a containerized blogging platform designed around a multi-service architecture.
+
+It combines a **user service**, **MySQL database**, and **Nginx web server** to manage users and serve individual blogs through username-based subdomains.
+
+---
+
+## Features
+
+- User and role management
+- Multiple user roles: `user`, `author`, `mod`, `admin`
+- MySQL-backed data storage
+- Individual blogs for users
+- Username-based blog subdomains
+- Nginx-powered static content serving
+- Fully containerized with Docker Compose
+
+---
+
+## Architecture
+
+```text
+                    ┌──────────────┐
+                    │    Client    │
+                    └──────┬───────┘
+                           │
+                    username.blog.in
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │    Nginx     │
+                    │ Blog Server  │
+                    └──────┬───────┘
+                           │
+              ┌────────────┴────────────┐
+              ▼                         ▼
+       ┌─────────────┐           ┌─────────────┐
+       │ User Service│ ─────────▶│    MySQL    │
+       └─────────────┘           └─────────────┘
