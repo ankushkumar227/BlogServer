@@ -1,14 +1,103 @@
 # DeltaTask2
 
-A Docker-based multi-service application using **Nginx, MySQL, and a User Service**.
+> A containerized multi-service blogging platform built with **Docker, MySQL, and Nginx**.
+
+DeltaTask2 provides the foundation for a multi-user blog system where users can have role-based access and blogs can be served through username-based subdomains.
+
+## What does it do?
+
+The project combines three services:
+
+* **User Service** — manages users and interacts with the database.
+* **MySQL** — stores users, roles, and blog information.
+* **Nginx** — serves each user's blog as a separate website.
+
+```text
+                    ┌─────────────────┐
+                    │      Client     │
+                    └────────┬────────┘
+                             │
+                      username.blog.in
+                             │
+                             ▼
+                    ┌─────────────────┐
+                    │      Nginx      │
+                    │  Blog Hosting   │
+                    └─────────────────┘
+                             │
+                             │
+             ┌───────────────┴───────────────┐
+             ▼                               ▼
+      ┌─────────────┐                 ┌─────────────┐
+      │ User Service│ ──────────────▶ │    MySQL    │
+      └─────────────┘                 └─────────────┘
+```
+
+## Key Features
+
+* Dockerized multi-service architecture
+* MySQL-backed user and blog management
+* Role-based users: `user`, `author`, `mod`, `admin`
+* Username-based blog subdomains
+* Nginx-powered static blog hosting
+* Persistent database and blog storage
+* Easy setup with Docker Compose
 
 ## Tech Stack
 
-* Docker & Docker Compose
-* MySQL 8.0
-* Nginx
-* Ubuntu 20.04
-* Bash
+| Technology       | Purpose                  |
+| ---------------- | ------------------------ |
+| Docker & Compose | Containerization         |
+| MySQL 8          | Database                 |
+| Nginx            | Blog/web server          |
+| Ubuntu 20.04     | User-service environment |
+| Bash             | Service automation       |
+
+## Getting Started
+
+Clone the repository:
+
+```bash
+git clone https://github.com/ankushkumar227/DeltaTask2.git
+cd DeltaTask2
+```
+
+Start the complete application:
+
+```bash
+docker compose up --build
+```
+
+The Nginx server will be available on:
+
+```text
+http://localhost:5001
+```
+
+## Blog Structure
+
+Each user's blog is served using a dedicated hostname:
+
+```text
+<username>.blog.in
+```
+
+Nginx maps the hostname to that user's public blog directory:
+
+```text
+/usr/share/nginx/html/<username>/public
+```
+
+This allows multiple user blogs to be hosted from the same Nginx service.
+
+## Database
+
+The application uses a MySQL database named `mydb` with tables for:
+
+* Users and their roles
+* Blog information
+
+Database initialization is handled automatically through `mysql-service/init.sql`.
 
 ## Project Structure
 
@@ -27,84 +116,14 @@ DeltaTask2/
 └── docker-compose.yml
 ```
 
-## Services
-
-### User Service
-
-Ubuntu-based container with MySQL client and `yq`. It connects to the MySQL database and uses the project's `scripts`, `config`, and `data` directories.
-
-### MySQL
-
-Uses **MySQL 8.0** with database `mydb`. Database initialization is handled by `mysql-service/init.sql`.
-
-### Nginx
-
-Serves blog/static content on port **5001**. User blogs are mapped using:
-
-```text
-<username>.blog.in
-```
-
-## Setup
-
-Clone the repository:
-
-```bash
-git clone https://github.com/ankushkumar227/DeltaTask2.git
-cd DeltaTask2
-```
-
-Build and start:
-
-```bash
-docker compose up --build
-```
-
-Run in background:
-
-```bash
-docker compose up --build -d
-```
-
-Check services:
-
-```bash
-docker compose ps
-```
-
-Stop services:
+## Stop the Application
 
 ```bash
 docker compose down
 ```
 
-## Ports
+---
 
-| Service |   Port |
-| ------- | -----: |
-| Nginx   | `5001` |
-| MySQL   | `3307` |
+### Built with Docker · MySQL · Nginx
 
-## Database
-
-The database contains:
-
-* `users` – stores users and roles
-* `blogs` – stores blog information
-
-Supported user roles:
-
-```text
-user
-author
-mod
-admin
-```
-
-## Notes
-
-The current configuration contains development database credentials. These should be moved to environment variables or Docker secrets before production deployment.
-
-## Repository
-
-[GitHub](https://github.com/ankushkumar227/DeltaTask2)
+**DeltaTask2** — a simple foundation for hosting and managing multiple user blogs through a containerized architecture.
